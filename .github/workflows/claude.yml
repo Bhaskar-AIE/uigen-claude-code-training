@@ -30,11 +30,41 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Project setup # steps to do for project setup so @calude can directly interact with the app in browser
+        run: |
+          npm run setup
+          npm run dev:daemon
+
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+
+          custom_instructions: |    # custom instructions to claude for @claude mention
+            The project is already set up with all dependences installed.
+            The server is already runnig at localhoat:3000. Logs from it 
+            are beign written to logs.txt. If needed, you can query the db with
+            the 'sqlite3' cli. If needed, use the mcp_playwright set of tools to
+            launch a browser and interact wiht the app.
+
+          mcp_config: | # configuration setup for mcp_playwright server
+            {
+              "mcpServers": {
+                "playwright": {
+                  "command": "npx",
+                  "args": [
+                    "@playwright/mcp@latest",
+                    "--allowed-origins",
+                    "localhost:3000;cdn.tailwindcss.com;esm.sh"
+                  ]
+                }
+              }
+            }
+            
+          allowed_tools: | # its important that we have to list out all permissions that to grant to claude code (so for mcp server, we have to indivudually list all the tools)
+            "Bash(npm:*),Bash(sqlite3:*),mcp__playwright__browser_snapshot,mcp__playwright__browser_click",..."
+            
 
           # This is an optional setting that allows Claude to read CI results on PRs
           additional_permissions: |
